@@ -1,0 +1,229 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( Table != null && IsMyTurn )
+	{
+		<div class="betting-controls">
+			<!-- Action Buttons -->
+			<div class="action-buttons">
+				<button class="btn btn-fold" onclick="@OnFold">FOLD</button>
+
+				@if ( CanCheck )
+				{
+					<button class="btn btn-check" onclick="@OnCheck">CHECK</button>
+				}
+				else
+				{
+					<button class="btn btn-call" onclick="@OnCall">CALL @CallAmount</button>
+				}
+
+				<button class="btn btn-raise" onclick="@OnRaise">RAISE @RaiseAmount</button>
+				<button class="btn btn-allin" onclick="@OnAllIn">ALL IN</button>
+			</div>
+
+			<!-- Raise Slider -->
+			<div class="raise-controls">
+				<input type="range" class="raise-slider"
+					min="@MinRaise" max="@MaxRaise" value="@RaiseAmount"
+					oninput="@OnRaiseSliderChange" />
+				<div class="raise-presets">
+					<button class="preset-btn" onclick="@(() => SetRaisePreset(0))">Min</button>
+					<button class="preset-btn" onclick="@(() => SetRaisePreset(1))">1/2 Pot</button>
+					<button class="preset-btn" onclick="@(() => SetRaisePreset(2))">Pot</button>
+					<button class="preset-btn" onclick="@(() => SetRaisePreset(3))">All-In</button>
+				</div>
+			</div>
+
+			<!-- Timer Bar -->
+			<div class="timer-bar">
+				<div class="timer-fill @TimerUrgencyClass" style="width: @TimerPercent%"></div>
+				<span class="timer-text">@TimerSeconds s</span>
+			</div>
+		</div>
+	}
+</root>
+
+<style>
+	.betting-controls {
+		position: absolute;
+		bottom: 32px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		pointer-events: all;
+	}
+
+	.action-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.btn {
+		padding: 10px 20px;
+		border-radius: 4px;
+		font-family: Poppins;
+		font-weight: bold;
+		font-size: 16px;
+		cursor: pointer;
+		border: 1px solid transparent;
+		transition: all 0.15s ease-out;
+	}
+
+	.btn:hover { transform: scale(1.05); }
+
+	.btn-fold {
+		background-color: rgba(231, 76, 60, 0.8);
+		color: white;
+		border-color: rgba(231, 76, 60, 1);
+	}
+
+	.btn-check, .btn-call {
+		background-color: rgba(46, 204, 113, 0.8);
+		color: white;
+		border-color: rgba(46, 204, 113, 1);
+	}
+
+	.btn-raise {
+		background-color: rgba(212, 175, 55, 0.8);
+		color: #1a1a1a;
+		border-color: rgba(212, 175, 55, 1);
+	}
+
+	.btn-allin {
+		background-color: rgba(243, 156, 18, 0.9);
+		color: white;
+		border-color: rgba(243, 156, 18, 1);
+	}
+
+	.raise-controls {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		width: 400px;
+	}
+
+	.raise-slider {
+		width: 100%;
+		height: 8px;
+		accent-color: #d4af37;
+	}
+
+	.raise-presets {
+		display: flex;
+		flex-direction: row;
+		gap: 6px;
+	}
+
+	.preset-btn {
+		padding: 4px 12px;
+		background-color: rgba(0, 0, 0, 0.5);
+		color: rgba(255, 255, 255, 0.8);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 3px;
+		font-family: Poppins;
+		font-size: 11px;
+		cursor: pointer;
+	}
+
+	.preset-btn:hover {
+		border-color: rgba(212, 175, 55, 0.9);
+		color: white;
+	}
+
+	.timer-bar {
+		width: 300px;
+		height: 6px;
+		background-color: rgba(0, 0, 0, 0.5);
+		border-radius: 3px;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.timer-fill {
+		height: 100%;
+		border-radius: 3px;
+		transition: width 1s linear;
+	}
+
+	.timer-fill.timer-safe { background-color: #2ecc71; }
+	.timer-fill.timer-warn { background-color: #f39c12; }
+	.timer-fill.timer-danger { background-color: #e74c3c; }
+
+	.timer-text {
+		position: absolute;
+		top: -16px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.7);
+		font-family: Poppins;
+	}
+</style>
+
+@code {
+	private int RaiseAmount { get; set; } = 20;
+
+	private PokerTable Table => Scene?.GetAllComponents<PokerTable>()?.FirstOrDefault();
+
+	private bool IsMyTurn
+	{
+		get
+		{
+			if ( Table == null || !Table.IsHandActive ) return false;
+			// Check if local player's seat matches current action player
+			var interaction = Scene?.GetAllComponents<PokerTableInteraction>()
+				?.FirstOrDefault( t => t.IsLocalPlayerSeated() );
+			return interaction != null && Table.CurrentActionPlayer >= 0;
+		}
+	}
+
+	private bool CanCheck => Table?.CurrentBet <= 0;
+	private int CallAmount => Table?.CurrentBet ?? 0;
+	private int MinRaise => 20; // Big blind
+	private int MaxRaise => 1000; // Starting stack
+
+	private float TimeRemaining => Math.Max( 0, (Table?.ActionDeadline ?? 0) - (float)Sandbox.Time.Now );
+	private int TimerSeconds => (int)TimeRemaining;
+	private float TimerPercent => (TimeRemaining / PokerTable.ActionTimeout) * 100f;
+	private string TimerUrgencyClass => TimeRemaining > 15 ? "timer-safe" : TimeRemaining > 5 ? "timer-warn" : "timer-danger";
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		Table?.CurrentActionPlayer, Table?.CurrentBet, Table?.ActionDeadline, RaiseAmount );
+
+	private void OnFold() => SubmitAction( (int)ActionType.Fold, 0 );
+	private void OnCheck() => SubmitAction( (int)ActionType.Check, 0 );
+	private void OnCall() => SubmitAction( (int)ActionType.Call, 0 );
+	private void OnRaise() => SubmitAction( (int)ActionType.Raise, RaiseAmount );
+	private void OnAllIn() => SubmitAction( (int)ActionType.AllIn, 0 );
+
+	private void SubmitAction( int actionType, int amount )
+	{
+		Table?.SubmitAction( Connection.Local, actionType, amount );
+	}
+
+	private void OnRaiseSliderChange( ChangeEvent e )
+	{
+		if ( int.TryParse( e.Value, out int val ) )
+			RaiseAmount = val;
+	}
+
+	private void SetRaisePreset( int preset )
+	{
+		RaiseAmount = preset switch
+		{
+			0 => MinRaise,
+			1 => Math.Max( MinRaise, (Table?.PotSize ?? 0) / 2 ),
+			2 => Math.Max( MinRaise, Table?.PotSize ?? 0 ),
+			3 => MaxRaise,
+			_ => RaiseAmount
+		};
+	}
+}

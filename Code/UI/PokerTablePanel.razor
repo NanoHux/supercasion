@@ -1,0 +1,283 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( Table != null && IsSeated )
+	{
+		<div class="poker-table-ui">
+			<!-- Community Cards -->
+			<div class="community-area">
+				<div class="community-cards">
+					@foreach ( var card in GetCommunityCards() )
+					{
+						<div class="card @GetCardColorClass(card)">@card</div>
+					}
+					@for ( int i = GetCommunityCards().Length; i < 5; i++ )
+					{
+						<div class="card card-empty"></div>
+					}
+				</div>
+				<div class="pot-display">
+					<span class="pot-label">POT</span>
+					<span class="pot-value">@Table.PotSize</span>
+				</div>
+			</div>
+
+			<!-- Player Seats -->
+			<div class="seats-area">
+				@for ( int i = 0; i < PokerTable.MaxSeats; i++ )
+				{
+					var seatIdx = i;
+					var status = GetSeatStatus( seatIdx );
+					var name = GetPlayerName( seatIdx );
+					var chips = GetChipCount( seatIdx );
+					<div class="seat @status @(seatIdx == Table.DealerSeatIndex ? "dealer" : "") @(seatIdx == Table.CurrentActionPlayer ? "active-turn" : "")">
+						@if ( status != "empty" )
+						{
+							<span class="seat-name">@name</span>
+							<span class="seat-chips">@chips</span>
+							@if ( seatIdx == Table.DealerSeatIndex )
+							{
+								<span class="dealer-button">D</span>
+							}
+							@if ( status == "folded" )
+							{
+								<span class="seat-badge fold-badge">FOLD</span>
+							}
+							@if ( status == "allin" )
+							{
+								<span class="seat-badge allin-badge">ALL IN</span>
+							}
+							@if ( status == "disconnected" )
+							{
+								<span class="seat-badge dc-badge">DC</span>
+							}
+						}
+						else
+						{
+							<span class="seat-empty">Empty</span>
+						}
+					</div>
+				}
+			</div>
+
+			<!-- Hand State -->
+			<div class="hand-state">@Table.HandStateSync</div>
+		</div>
+	}
+</root>
+
+<style>
+	.poker-table-ui {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		font-family: Poppins;
+		pointer-events: none;
+	}
+
+	.community-area {
+		position: absolute;
+		top: 30%;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.community-cards {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.card {
+		width: 60px;
+		height: 84px;
+		background-color: rgba(255, 255, 255, 0.95);
+		border-radius: 6px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 18px;
+		font-weight: bold;
+		border: 2px solid rgba(212, 175, 55, 0.6);
+	}
+
+	.card-red { color: #e74c3c; }
+	.card-black { color: #1a1a1a; }
+	.card-empty {
+		background-color: rgba(0, 0, 0, 0.3);
+		border: 2px dashed rgba(255, 255, 255, 0.2);
+	}
+
+	.pot-display {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		background-color: rgba(0, 0, 0, 0.6);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 4px 16px;
+	}
+
+	.pot-label {
+		font-size: 12px;
+		color: rgba(212, 175, 55, 0.9);
+		font-weight: bold;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	.pot-value {
+		font-size: 22px;
+		color: white;
+		font-weight: bold;
+	}
+
+	.seats-area {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+	}
+
+	.seat {
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		background-color: rgba(0, 0, 0, 0.5);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 6px;
+		padding: 6px 12px;
+		min-width: 80px;
+	}
+
+	/* Seat positions around the table */
+	.seat:nth-child(1) { bottom: 8%; left: 50%; transform: translateX(-50%); } /* You (bottom center) */
+	.seat:nth-child(2) { bottom: 25%; left: 10%; }
+	.seat:nth-child(3) { top: 20%; left: 10%; }
+	.seat:nth-child(4) { top: 8%; left: 30%; }
+	.seat:nth-child(5) { top: 8%; right: 30%; }
+	.seat:nth-child(6) { top: 20%; right: 10%; }
+
+	.seat.active-turn {
+		border-color: rgba(212, 175, 55, 0.9);
+		box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+	}
+
+	.seat-name {
+		font-size: 12px;
+		color: white;
+		font-weight: bold;
+	}
+
+	.seat-chips {
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.9);
+		font-weight: bold;
+	}
+
+	.seat-empty {
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.3);
+	}
+
+	.seat.empty {
+		border-color: rgba(46, 204, 113, 0.3);
+	}
+
+	.dealer-button {
+		position: absolute;
+		top: -8px;
+		right: -8px;
+		width: 20px;
+		height: 20px;
+		background-color: white;
+		color: #1a1a1a;
+		border-radius: 50%;
+		font-size: 10px;
+		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.seat-badge {
+		font-size: 10px;
+		font-weight: bold;
+		padding: 1px 6px;
+		border-radius: 3px;
+		text-transform: uppercase;
+	}
+
+	.fold-badge { background-color: rgba(231, 76, 60, 0.8); color: white; }
+	.allin-badge { background-color: rgba(243, 156, 18, 0.8); color: white; }
+	.dc-badge { background-color: rgba(255, 255, 255, 0.3); color: white; }
+
+	.hand-state {
+		position: absolute;
+		top: 16px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.6);
+		background-color: rgba(0, 0, 0, 0.4);
+		padding: 4px 12px;
+		border-radius: 4px;
+	}
+</style>
+
+@code {
+	private PokerTable Table => Scene?.GetAllComponents<PokerTable>()?.FirstOrDefault();
+	private bool IsSeated => Scene?.GetAllComponents<PokerTableInteraction>()
+		?.Any( t => t.IsLocalPlayerSeated() ) ?? false;
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		Table?.PotSize, Table?.CommunityCardsSync, Table?.SeatStatusSync,
+		Table?.CurrentActionPlayer, Table?.HandStateSync );
+
+	private string[] GetCommunityCards()
+	{
+		if ( string.IsNullOrEmpty( Table?.CommunityCardsSync ) )
+			return Array.Empty<string>();
+		return Table.CommunityCardsSync.Split( ',', StringSplitOptions.RemoveEmptyEntries );
+	}
+
+	private string GetSeatStatus( int index )
+	{
+		if ( string.IsNullOrEmpty( Table?.SeatStatusSync ) ) return "empty";
+		var parts = Table.SeatStatusSync.Split( ',' );
+		return index < parts.Length ? parts[index] : "empty";
+	}
+
+	private string GetPlayerName( int index )
+	{
+		if ( string.IsNullOrEmpty( Table?.PlayerNamesSync ) ) return "";
+		var parts = Table.PlayerNamesSync.Split( ',' );
+		return index < parts.Length ? parts[index] : "";
+	}
+
+	private string GetChipCount( int index )
+	{
+		if ( string.IsNullOrEmpty( Table?.ChipCountsSync ) ) return "0";
+		var parts = Table.ChipCountsSync.Split( ',' );
+		return index < parts.Length ? parts[index] : "0";
+	}
+
+	private string GetCardColorClass( string card )
+	{
+		if ( card.Length < 2 ) return "";
+		return card[^1] is 'h' or 'd' ? "card-red" : "card-black";
+	}
+}

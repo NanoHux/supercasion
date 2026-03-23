@@ -1,0 +1,177 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	<div class="cp-hud">
+		<!-- Top-left: CP count -->
+		<div class="cp-display">
+			<span class="cp-label">CP</span>
+			<span class="cp-value">@CpCount</span>
+		</div>
+
+		<!-- Top-right: Rank -->
+		<div class="rank-display">
+			<span class="rank-value">#@RankPosition</span>
+			<span class="rank-total">of @TotalPlayers</span>
+			<span class="rank-week">Week @WeekNumber</span>
+		</div>
+
+		<!-- Top-center: Prize reminder (small, non-intrusive) -->
+		<div class="prize-reminder">
+			<span class="prize-text">Prize: $@PrizeAmount — @TimeLeft left</span>
+		</div>
+	</div>
+
+	<!-- CP Toast (shows briefly when CP is awarded) -->
+	@if ( ShowCpToast )
+	{
+		<div class="cp-toast">+@PokerHand.CpPerHand CP</div>
+	}
+</root>
+
+<style>
+	.cp-hud {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		font-family: Poppins;
+		pointer-events: none;
+	}
+
+	.cp-display {
+		position: absolute;
+		top: 16px;
+		left: 16px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		background-color: rgba(0, 0, 0, 0.6);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 8px 16px;
+	}
+
+	.cp-label {
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.9);
+		font-weight: bold;
+		letter-spacing: 1px;
+	}
+
+	.cp-value {
+		font-size: 22px;
+		color: white;
+		font-weight: bold;
+	}
+
+	.rank-display {
+		position: absolute;
+		top: 16px;
+		right: 16px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 6px;
+		background-color: rgba(0, 0, 0, 0.6);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 8px 16px;
+	}
+
+	.rank-value {
+		font-size: 18px;
+		color: rgba(212, 175, 55, 0.9);
+		font-weight: bold;
+	}
+
+	.rank-total {
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.6);
+	}
+
+	.rank-week {
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.4);
+		margin-left: 4px;
+	}
+
+	.prize-reminder {
+		position: absolute;
+		top: 16px;
+		left: 50%;
+		transform: translateX(-50%);
+		background-color: rgba(0, 0, 0, 0.4);
+		border-radius: 4px;
+		padding: 4px 12px;
+	}
+
+	.prize-text {
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.5);
+		font-family: Poppins;
+	}
+
+	.cp-toast {
+		position: absolute;
+		top: 40%;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 36px;
+		font-weight: bold;
+		color: #d4af37;
+		font-family: Poppins;
+		text-shadow: 0 2px 8px rgba(212, 175, 55, 0.6);
+		animation: toast-fade 2s ease-out forwards;
+	}
+
+	@@keyframes toast-fade {
+		0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+		100% { opacity: 0; transform: translateX(-50%) translateY(-40px); }
+	}
+</style>
+
+@code {
+	private int CpCount { get; set; }
+	private int RankPosition { get; set; } = 0;
+	private int TotalPlayers { get; set; } = 0;
+	private int WeekNumber { get; set; } = 1;
+	private int PrizeAmount { get; set; } = 50;
+	private string TimeLeft { get; set; } = "—";
+	private bool ShowCpToast { get; set; }
+	private float _toastTimer;
+
+	protected override int BuildHash() => System.HashCode.Combine( CpCount, RankPosition, ShowCpToast );
+
+	protected override void OnUpdate()
+	{
+		// Calculate time remaining until Monday 00:00 UTC
+		var now = DateTime.UtcNow;
+		int daysUntilMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
+		if ( daysUntilMonday == 0 ) daysUntilMonday = 7;
+		var monday = now.Date.AddDays( daysUntilMonday );
+		var remaining = monday - now;
+		TimeLeft = $"{remaining.Days}d {remaining.Hours}h {remaining.Minutes}m";
+
+		// Toast timer
+		if ( ShowCpToast )
+		{
+			_toastTimer -= Time.Delta;
+			if ( _toastTimer <= 0 )
+				ShowCpToast = false;
+		}
+	}
+
+	/// <summary>
+	/// Called when CP is awarded. Triggers the gold flash toast.
+	/// </summary>
+	public void OnCpAwarded( int amount )
+	{
+		CpCount += amount;
+		ShowCpToast = true;
+		_toastTimer = 2f;
+	}
+}

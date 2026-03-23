@@ -1,0 +1,193 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+
+<root>
+	@if ( IsVisible )
+	{
+		<div class="overlay-backdrop">
+			<div class="overlay-panel">
+				<h2 class="overlay-title">Welcome to Terry's Casino!</h2>
+
+				<div class="overlay-step">
+					@switch ( CurrentStep )
+					{
+						case 0:
+							<div class="step-icon">♠</div>
+							<p class="step-text">You get <strong>1,000 chips</strong> each hand. They reset every round — no need to save!</p>
+							break;
+						case 1:
+							<div class="step-icon">🎯</div>
+							<p class="step-text"><strong>Fold, Call, or Raise</strong> — standard Texas Hold'em. Best 5-card hand wins the pot.</p>
+							break;
+						case 2:
+							<div class="step-icon">⭐</div>
+							<p class="step-text">Earn <strong>100 Competition Points</strong> every hand you play past the flop. CP is how you climb the leaderboard.</p>
+							break;
+						case 3:
+							<div class="step-icon">💰</div>
+							<p class="step-text">The player with the <strong>most CP</strong> at the end of the week wins a <strong>real prize!</strong> Check the lobby screen for details.</p>
+							break;
+					}
+				</div>
+
+				<div class="overlay-dots">
+					@for ( int i = 0; i < 4; i++ )
+					{
+						<span class="dot @(i == CurrentStep ? "active" : "")"></span>
+					}
+				</div>
+
+				<div class="overlay-buttons">
+					@if ( CurrentStep < 3 )
+					{
+						<button class="btn-next" onclick="@NextStep">Next →</button>
+					}
+					else
+					{
+						<button class="btn-play" onclick="@Dismiss">Got it! PLAY</button>
+					}
+				</div>
+			</div>
+		</div>
+	}
+</root>
+
+<style>
+	.overlay-backdrop {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: all;
+	}
+
+	.overlay-panel {
+		background-color: rgba(10, 10, 10, 0.95);
+		border: 1px solid rgba(212, 175, 55, 0.6);
+		border-radius: 8px;
+		padding: 32px 48px;
+		max-width: 480px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 24px;
+	}
+
+	.overlay-title {
+		font-family: Poppins;
+		font-size: 24px;
+		font-weight: bold;
+		color: #d4af37;
+		margin: 0;
+	}
+
+	.overlay-step {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+		min-height: 100px;
+	}
+
+	.step-icon {
+		font-size: 48px;
+	}
+
+	.step-text {
+		font-family: Poppins;
+		font-size: 16px;
+		color: rgba(255, 255, 255, 0.9);
+		text-align: center;
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.step-text strong {
+		color: #d4af37;
+	}
+
+	.overlay-dots {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.dot.active {
+		background-color: #d4af37;
+	}
+
+	.overlay-buttons {
+		display: flex;
+		justify-content: center;
+	}
+
+	.btn-next, .btn-play {
+		padding: 10px 32px;
+		border-radius: 4px;
+		font-family: Poppins;
+		font-weight: bold;
+		font-size: 16px;
+		cursor: pointer;
+		border: none;
+	}
+
+	.btn-next {
+		background-color: rgba(212, 175, 55, 0.3);
+		color: #d4af37;
+		border: 1px solid rgba(212, 175, 55, 0.6);
+	}
+
+	.btn-next:hover { background-color: rgba(212, 175, 55, 0.5); }
+
+	.btn-play {
+		background-color: rgba(212, 175, 55, 0.9);
+		color: #0a0a0a;
+	}
+
+	.btn-play:hover { background-color: #d4af37; }
+</style>
+
+@code {
+	private int CurrentStep { get; set; }
+	private bool IsVisible { get; set; }
+
+	protected override int BuildHash() => System.HashCode.Combine( IsVisible, CurrentStep );
+
+	protected override void OnStart()
+	{
+		// Check if player has seen this before (stored as cookie/preference)
+		// For now, show on first load
+		IsVisible = true;
+	}
+
+	private void NextStep()
+	{
+		if ( CurrentStep < 3 )
+			CurrentStep++;
+	}
+
+	private void Dismiss()
+	{
+		IsVisible = false;
+		// TODO: persist dismissal as player preference
+	}
+
+	/// <summary>
+	/// Re-show overlay from settings menu.
+	/// </summary>
+	public void Show()
+	{
+		CurrentStep = 0;
+		IsVisible = true;
+	}
+}

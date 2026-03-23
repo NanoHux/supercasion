@@ -1,0 +1,78 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( Table != null && Table.IsHandActive && Table.CurrentActionPlayer >= 0 )
+	{
+		<div class="action-timer @UrgencyClass @(IsLastFiveSeconds ? "pulsing" : "")">
+			<div class="timer-bar-bg">
+				<div class="timer-bar-fill" style="width: @PercentRemaining%"></div>
+			</div>
+			<span class="timer-seconds">@SecondsRemaining s remaining</span>
+		</div>
+	}
+</root>
+
+<style>
+	.action-timer {
+		position: absolute;
+		bottom: 120px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		pointer-events: none;
+	}
+
+	.timer-bar-bg {
+		width: 240px;
+		height: 6px;
+		background-color: rgba(0, 0, 0, 0.5);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
+	.timer-bar-fill {
+		height: 100%;
+		border-radius: 3px;
+		transition: width 1s linear, background-color 0.5s;
+	}
+
+	.action-timer.safe .timer-bar-fill { background-color: #2ecc71; }
+	.action-timer.warning .timer-bar-fill { background-color: #f39c12; }
+	.action-timer.danger .timer-bar-fill { background-color: #e74c3c; }
+
+	.timer-seconds {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.action-timer.danger .timer-seconds { color: #e74c3c; }
+
+	.pulsing .timer-seconds {
+		animation: pulse 0.5s ease-in-out infinite alternate;
+	}
+
+	@@keyframes pulse {
+		from { opacity: 1; transform: scale(1); }
+		to { opacity: 0.6; transform: scale(1.1); }
+	}
+</style>
+
+@code {
+	private PokerTable Table => Scene?.GetAllComponents<PokerTable>()?.FirstOrDefault();
+
+	private float TimeRemaining => Math.Max( 0, (Table?.ActionDeadline ?? 0) - (float)Sandbox.Time.Now );
+	private int SecondsRemaining => (int)Math.Ceiling( TimeRemaining );
+	private float PercentRemaining => (TimeRemaining / PokerTable.ActionTimeout) * 100f;
+	private bool IsLastFiveSeconds => TimeRemaining <= 5f && TimeRemaining > 0;
+
+	private string UrgencyClass => TimeRemaining > 15 ? "safe" : TimeRemaining > 5 ? "warning" : "danger";
+
+	protected override int BuildHash() => System.HashCode.Combine( SecondsRemaining, Table?.CurrentActionPlayer );
+}

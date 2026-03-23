@@ -1,0 +1,176 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	<!-- Emote wheel: visible while Tab held -->
+	@if ( IsWheelVisible )
+	{
+		<div class="emote-wheel">
+			@for ( int i = 0; i < Emotes.Length; i++ )
+			{
+				var idx = i;
+				var angle = (360.0 / Emotes.Length) * i - 90;
+				var x = 80 * Math.Cos( angle * Math.PI / 180 );
+				var y = 80 * Math.Sin( angle * Math.PI / 180 );
+				<button class="emote-option"
+					style="left: @(100 + x)px; top: @(100 + y)px;"
+					onclick="@(() => SendEmote(idx))">
+					<span class="emote-key">@(idx + 1)</span>
+					<span class="emote-text">@Emotes[idx]</span>
+				</button>
+			}
+		</div>
+	}
+
+	<!-- Active emote bubble display -->
+	@if ( !string.IsNullOrEmpty( ActiveEmoteText ) )
+	{
+		<div class="emote-bubble" style="left: @BubbleX px; top: @BubbleY px;">
+			@ActiveEmoteText
+		</div>
+	}
+</root>
+
+<style>
+	.emote-wheel {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 200px;
+		height: 200px;
+		pointer-events: all;
+	}
+
+	.emote-option {
+		position: absolute;
+		transform: translate(-50%, -50%);
+		background-color: rgba(20, 20, 20, 0.8);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 6px 10px;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		min-width: 70px;
+		transition: border-color 0.1s;
+	}
+
+	.emote-option:hover {
+		border-color: rgba(212, 175, 55, 0.9);
+		background-color: rgba(20, 20, 20, 0.95);
+	}
+
+	.emote-key {
+		font-size: 10px;
+		color: rgba(212, 175, 55, 0.7);
+		font-family: Poppins;
+	}
+
+	.emote-text {
+		font-size: 12px;
+		color: white;
+		font-family: Poppins;
+		white-space: nowrap;
+	}
+
+	.emote-bubble {
+		position: absolute;
+		background-color: rgba(20, 20, 20, 0.8);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 4px 10px;
+		font-family: Poppins;
+		font-size: 14px;
+		color: white;
+		pointer-events: none;
+		animation: emote-fade 3s ease-out forwards;
+	}
+
+	@@keyframes emote-fade {
+		0% { opacity: 0; transform: translateY(4px); }
+		10% { opacity: 1; transform: translateY(0); }
+		80% { opacity: 1; }
+		100% { opacity: 0; }
+	}
+</style>
+
+@code {
+	private static readonly string[] Emotes = new[]
+	{
+		"Nice hand", "GG", "Bluff?", "Wow",
+		"Thanks", "Oops", ":)", ":("
+	};
+
+	private bool IsWheelVisible { get; set; }
+	private string ActiveEmoteText { get; set; }
+	private float BubbleX { get; set; }
+	private float BubbleY { get; set; }
+	private float _emoteTimer;
+	private float _cooldownTimer;
+
+	protected override int BuildHash() => System.HashCode.Combine( IsWheelVisible, ActiveEmoteText );
+
+	protected override void OnUpdate()
+	{
+		IsWheelVisible = Input.Down( "score" ); // Tab key
+
+		// Number key shortcuts while wheel is open
+		if ( IsWheelVisible )
+		{
+			for ( int i = 0; i < Emotes.Length; i++ )
+			{
+				if ( Input.Pressed( $"slot{i + 1}" ) )
+				{
+					SendEmote( i );
+					break;
+				}
+			}
+		}
+
+		// Emote display timer
+		if ( !string.IsNullOrEmpty( ActiveEmoteText ) )
+		{
+			_emoteTimer -= Time.Delta;
+			if ( _emoteTimer <= 0 )
+				ActiveEmoteText = null;
+		}
+
+		// Cooldown
+		if ( _cooldownTimer > 0 )
+			_cooldownTimer -= Time.Delta;
+	}
+
+	private void SendEmote( int index )
+	{
+		if ( index < 0 || index >= Emotes.Length ) return;
+		if ( _cooldownTimer > 0 ) return; // Rate limit: 1 per 5s
+
+		var table = Scene?.GetAllComponents<PokerTable>()?.FirstOrDefault();
+		table?.BroadcastEmote( Connection.Local, index );
+
+		ShowEmote( Emotes[index] );
+		_cooldownTimer = 5f;
+	}
+
+	private void ShowEmote( string text )
+	{
+		ActiveEmoteText = text;
+		_emoteTimer = 3f;
+		BubbleX = Screen.Width / 2;
+		BubbleY = Screen.Height * 0.65f;
+	}
+
+	/// <summary>
+	/// Called from network broadcast when any player sends an emote.
+	/// </summary>
+	public void OnEmoteReceived( int seatIndex, int emoteIndex )
+	{
+		if ( emoteIndex >= 0 && emoteIndex < Emotes.Length )
+			ShowEmote( Emotes[emoteIndex] );
+	}
+}
