@@ -1,0 +1,73 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Core;
+@inherits PanelComponent
+
+<root>
+	<div class="credit-hud">
+		<span class="credit-icon">💰</span>
+		<span class="credit-label">Credits</span>
+		<span class="credit-value">@Balance</span>
+	</div>
+</root>
+
+<style>
+	.credit-hud {
+		position: absolute;
+		top: 16px;
+		left: 16px;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		background-color: rgba(0, 0, 0, 0.6);
+		border: 1px solid rgba(212, 175, 55, 0.8);
+		border-radius: 6px;
+		padding: 8px 16px;
+		font-family: Poppins;
+	}
+
+	.credit-icon {
+		font-size: 20px;
+	}
+
+	.credit-label {
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.9);
+		font-weight: bold;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+	}
+
+	.credit-value {
+		font-size: 22px;
+		color: white;
+		font-weight: bold;
+		min-width: 80px;
+		text-align: right;
+	}
+</style>
+
+@code {
+	/// <summary>Formatted credit balance string, read from the local player's CreditSystem.</summary>
+	private string Balance => FindLocalCredits();
+
+	/// <inheritdoc/>
+	/// Returning a hash of the balance ensures the panel re-renders only when the value changes.
+	protected override int BuildHash() => System.HashCode.Combine( Balance );
+
+	/// <summary>
+	/// Walks the scene to find the CreditSystem belonging to the local (non-proxy) player.
+	/// Returns "—" if no system is found yet.
+	/// </summary>
+	private string FindLocalCredits()
+	{
+		foreach ( var cs in Scene.GetAllComponents<CreditSystem>() )
+		{
+			if ( !cs.IsProxy )
+				return cs.GetDisplayBalance();
+		}
+
+		return "—";
+	}
+}
