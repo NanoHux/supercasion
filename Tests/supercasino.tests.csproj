@@ -24,6 +24,9 @@
 		<Compile Include="../Code/Games/Poker/SidePotCalculator.cs" />
 		<Compile Include="../Code/Games/Poker/PlayerAction.cs" />
 		<Compile Include="../Code/Games/Poker/BettingRound.cs" />
+		<Compile Include="../Code/Games/Poker/PokerHandState.cs" />
+		<Compile Include="../Code/Games/Poker/HandSnapshot.cs" />
+		<Compile Include="../Code/Games/Poker/PokerHand.cs" />
 	</ItemGroup>
 
 </Project>
