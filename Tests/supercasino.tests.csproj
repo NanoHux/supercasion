@@ -6,6 +6,7 @@
 		<Nullable>disable</Nullable>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,21 +15,15 @@
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.*" />
 	</ItemGroup>
 
-	<!--
-		Pure game logic classes (hand evaluator, side pot calculator, betting round,
-		CP system) are written WITHOUT s&box dependencies. Include them directly
-		here so tests can compile without the s&box SDK installed.
-
-		When adding a new testable class in Code/Games/Poker/, add a corresponding
-		Compile Include line below.
-
-		Example:
-		<ItemGroup>
-			<Compile Include="../Code/Games/Poker/HandEvaluator.cs" />
-			<Compile Include="../Code/Games/Poker/SidePotCalculator.cs" />
-			<Compile Include="../Code/Games/Poker/BettingRound.cs" />
-			<Compile Include="../Code/Core/CompetitionPointSystem.Logic.cs" />
-		</ItemGroup>
-	-->
+	<ItemGroup>
+		<Compile Include="../Code/Games/Poker/Card.cs" />
+		<Compile Include="../Code/Games/Poker/HandRank.cs" />
+		<Compile Include="../Code/Games/Poker/HandResult.cs" />
+		<Compile Include="../Code/Games/Poker/HandEvaluator.cs" />
+		<Compile Include="../Code/Games/Poker/Deck.cs" />
+		<Compile Include="../Code/Games/Poker/SidePotCalculator.cs" />
+		<Compile Include="../Code/Games/Poker/PlayerAction.cs" />
+		<Compile Include="../Code/Games/Poker/BettingRound.cs" />
+	</ItemGroup>
 
 </Project>
