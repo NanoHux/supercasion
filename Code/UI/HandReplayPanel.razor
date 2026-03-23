@@ -1,0 +1,293 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( IsVisible )
+	{
+		<div class="replay-backdrop">
+			<div class="replay-panel">
+				<div class="replay-header">
+					<h2 class="replay-title">Hand Replay</h2>
+					<span class="replay-hand-id">Hand #@CurrentHandId</span>
+				</div>
+
+				<!-- Community Cards -->
+				<div class="replay-community">
+					@if ( CurrentSnapshot != null )
+					{
+						@foreach ( var card in CurrentSnapshot.CommunityCards ?? Array.Empty<string>() )
+						{
+							<span class="replay-card">@card</span>
+						}
+					}
+				</div>
+
+				<!-- State Label -->
+				<div class="replay-state">@CurrentSnapshot?.State.ToString()</div>
+
+				<!-- Pot -->
+				<div class="replay-pot">Pot: @(CurrentSnapshot?.PotTotal ?? 0)</div>
+
+				<!-- Player States -->
+				<div class="replay-players">
+					@if ( CurrentSnapshot != null )
+					{
+						@for ( int i = 0; i < (CurrentSnapshot.ChipStacks?.Length ?? 0); i++ )
+						{
+							<div class="replay-player @(CurrentSnapshot.Folded?[i] == true ? "folded" : "") @(CurrentSnapshot.AllIn?[i] == true ? "allin" : "")">
+								<span class="rp-label">P@(i + 1)</span>
+								<span class="rp-chips">@CurrentSnapshot.ChipStacks[i]</span>
+								@if ( CurrentSnapshot.Folded?[i] == true )
+								{
+									<span class="rp-status">FOLD</span>
+								}
+								else if ( CurrentSnapshot.AllIn?[i] == true )
+								{
+									<span class="rp-status allin-tag">ALL IN</span>
+								}
+							</div>
+						}
+					}
+				</div>
+
+				<!-- Action Info -->
+				@if ( !string.IsNullOrEmpty( CurrentSnapshot?.ActionType ) )
+				{
+					<div class="replay-action">
+						P@(CurrentSnapshot.ActionPlayerIndex): @CurrentSnapshot.ActionType @(CurrentSnapshot.ActionAmount > 0 ? $"({CurrentSnapshot.ActionAmount})" : "")
+					</div>
+				}
+
+				<!-- Controls -->
+				<div class="replay-controls">
+					<button class="btn-replay" onclick="@PrevStep" disabled="@(StepIndex <= 0)">◀ Prev</button>
+					<span class="step-counter">@(StepIndex + 1) / @TotalSteps</span>
+					<button class="btn-replay" onclick="@NextStep" disabled="@(StepIndex >= TotalSteps - 1)">Next ▶</button>
+				</div>
+
+				<button class="btn-close-replay" onclick="@Close">Close</button>
+			</div>
+		</div>
+	}
+</root>
+
+<style>
+	.replay-backdrop {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background-color: rgba(0, 0, 0, 0.85);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: all;
+	}
+
+	.replay-panel {
+		background-color: rgba(10, 10, 10, 0.95);
+		border: 1px solid rgba(212, 175, 55, 0.6);
+		border-radius: 8px;
+		padding: 24px 32px;
+		width: 500px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.replay-header {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.replay-title {
+		font-family: Poppins;
+		font-size: 20px;
+		font-weight: bold;
+		color: #d4af37;
+		margin: 0;
+	}
+
+	.replay-hand-id {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.4);
+	}
+
+	.replay-community {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.replay-card {
+		background-color: white;
+		color: #1a1a1a;
+		font-family: Poppins;
+		font-size: 16px;
+		font-weight: bold;
+		padding: 8px 12px;
+		border-radius: 4px;
+		min-width: 40px;
+		text-align: center;
+	}
+
+	.replay-state {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.8);
+		text-transform: uppercase;
+		letter-spacing: 1px;
+	}
+
+	.replay-pot {
+		font-family: Poppins;
+		font-size: 16px;
+		color: #d4af37;
+		font-weight: bold;
+	}
+
+	.replay-players {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.replay-player {
+		background-color: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+		padding: 6px 10px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		min-width: 60px;
+	}
+
+	.replay-player.folded {
+		opacity: 0.4;
+	}
+
+	.replay-player.allin {
+		border-color: rgba(231, 76, 60, 0.5);
+	}
+
+	.rp-label {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.6);
+	}
+
+	.rp-chips {
+		font-family: Poppins;
+		font-size: 14px;
+		color: white;
+		font-weight: bold;
+	}
+
+	.rp-status {
+		font-family: Poppins;
+		font-size: 10px;
+		color: rgba(255, 255, 255, 0.4);
+	}
+
+	.rp-status.allin-tag {
+		color: #e74c3c;
+	}
+
+	.replay-action {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.8);
+		background-color: rgba(212, 175, 55, 0.1);
+		padding: 4px 12px;
+		border-radius: 4px;
+	}
+
+	.replay-controls {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.btn-replay {
+		padding: 6px 16px;
+		background-color: rgba(212, 175, 55, 0.2);
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 4px;
+		color: #d4af37;
+		font-family: Poppins;
+		font-size: 14px;
+		cursor: pointer;
+	}
+
+	.btn-replay:hover { background-color: rgba(212, 175, 55, 0.4); }
+	.btn-replay:disabled { opacity: 0.3; cursor: default; }
+
+	.step-counter {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.btn-close-replay {
+		padding: 6px 24px;
+		background-color: rgba(255, 255, 255, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 4px;
+		color: white;
+		font-family: Poppins;
+		font-size: 12px;
+		cursor: pointer;
+	}
+
+	.btn-close-replay:hover { background-color: rgba(255, 255, 255, 0.2); }
+</style>
+
+@code {
+	private bool IsVisible { get; set; }
+	private int CurrentHandId { get; set; }
+	private int StepIndex { get; set; }
+	private HandSnapshot[] Snapshots { get; set; } = Array.Empty<HandSnapshot>();
+
+	private HandSnapshot CurrentSnapshot => StepIndex >= 0 && StepIndex < Snapshots.Length
+		? Snapshots[StepIndex] : null;
+	private int TotalSteps => Snapshots.Length;
+
+	protected override int BuildHash() => System.HashCode.Combine( IsVisible, StepIndex, CurrentHandId );
+
+	private void NextStep()
+	{
+		if ( StepIndex < TotalSteps - 1 )
+			StepIndex++;
+	}
+
+	private void PrevStep()
+	{
+		if ( StepIndex > 0 )
+			StepIndex--;
+	}
+
+	private void Close()
+	{
+		IsVisible = false;
+	}
+
+	/// <summary>
+	/// Show replay for a specific hand. Called from external code.
+	/// </summary>
+	public void ShowReplay( int handId, HandSnapshot[] snapshots )
+	{
+		CurrentHandId = handId;
+		Snapshots = snapshots ?? Array.Empty<HandSnapshot>();
+		StepIndex = 0;
+		IsVisible = true;
+	}
+}

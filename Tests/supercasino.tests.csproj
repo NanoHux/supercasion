@@ -27,6 +27,10 @@
 		<Compile Include="../Code/Games/Poker/PokerHandState.cs" />
 		<Compile Include="../Code/Games/Poker/HandSnapshot.cs" />
 		<Compile Include="../Code/Games/Poker/PokerHand.cs" />
+		<Compile Include="../Code/Core/AuditLogger.cs" />
+		<Compile Include="../Code/Core/CompetitionPointSystem.cs" />
+		<Compile Include="../Code/Core/HandReplay.cs" />
+		<Compile Include="../Code/Core/EmoteSystem.cs" />
 	</ItemGroup>
 
 </Project>

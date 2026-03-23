@@ -1,0 +1,330 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( IsVisible )
+	{
+		<div class="lobby-backdrop">
+			<div class="lobby-panel">
+				<div class="lobby-header">
+					<h1 class="lobby-title">Terry's Casino</h1>
+					<span class="lobby-subtitle">Weekly Poker Championship</span>
+				</div>
+
+				<!-- Prize Banner -->
+				<div class="prize-banner">
+					<span class="prize-label">This Week's Prize</span>
+					<span class="prize-value">@PrizeText</span>
+					<span class="prize-timer">Resets in @TimeLeftText</span>
+				</div>
+
+				<!-- Leaderboard -->
+				<div class="leaderboard">
+					<h2 class="leaderboard-title">Leaderboard</h2>
+					<div class="leaderboard-list">
+						@for ( int i = 0; i < LeaderboardEntries.Length; i++ )
+						{
+							var entry = LeaderboardEntries[i];
+							<div class="leaderboard-row @(entry.IsLocal ? "local" : "") @(i < 3 ? "top-three" : "")">
+								<span class="lb-rank">@(i < 3 ? RankIcons[i] : $"#{i + 1}")</span>
+								<span class="lb-name">@entry.Name</span>
+								<span class="lb-points">@entry.Points CP</span>
+							</div>
+						}
+					</div>
+				</div>
+
+				<!-- Tables -->
+				<div class="table-list">
+					<h2 class="table-list-title">Tables</h2>
+					@for ( int i = 0; i < TableInfos.Length; i++ )
+					{
+						var table = TableInfos[i];
+						<div class="table-row">
+							<span class="table-name">Table @table.Id</span>
+							<span class="table-players">@table.Players / @table.MaxPlayers</span>
+							<span class="table-stakes">@table.Stakes</span>
+							<span class="table-status @(table.InProgress ? "active" : "")">
+								@(table.InProgress ? "In Progress" : "Waiting")
+							</span>
+						</div>
+					}
+				</div>
+
+				<button class="btn-close" onclick="@Close">Close</button>
+			</div>
+		</div>
+	}
+</root>
+
+<style>
+	.lobby-backdrop {
+		position: absolute;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background-color: rgba(0, 0, 0, 0.85);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: all;
+	}
+
+	.lobby-panel {
+		background-color: rgba(10, 10, 10, 0.95);
+		border: 1px solid rgba(212, 175, 55, 0.6);
+		border-radius: 8px;
+		padding: 32px;
+		width: 600px;
+		max-height: 80vh;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+		overflow-y: auto;
+	}
+
+	.lobby-header {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.lobby-title {
+		font-family: Poppins;
+		font-size: 32px;
+		font-weight: bold;
+		color: #d4af37;
+		margin: 0;
+	}
+
+	.lobby-subtitle {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.prize-banner {
+		background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		border-radius: 6px;
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.prize-label {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(212, 175, 55, 0.8);
+		text-transform: uppercase;
+		letter-spacing: 2px;
+	}
+
+	.prize-value {
+		font-family: Poppins;
+		font-size: 24px;
+		font-weight: bold;
+		color: #d4af37;
+	}
+
+	.prize-timer {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.4);
+	}
+
+	.leaderboard {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.leaderboard-title, .table-list-title {
+		font-family: Poppins;
+		font-size: 16px;
+		font-weight: bold;
+		color: white;
+		margin: 0;
+	}
+
+	.leaderboard-list {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.leaderboard-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 6px 12px;
+		border-radius: 4px;
+		background-color: rgba(255, 255, 255, 0.03);
+	}
+
+	.leaderboard-row.top-three {
+		background-color: rgba(212, 175, 55, 0.08);
+	}
+
+	.leaderboard-row.local {
+		border: 1px solid rgba(212, 175, 55, 0.4);
+	}
+
+	.lb-rank {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.8);
+		width: 40px;
+	}
+
+	.lb-name {
+		font-family: Poppins;
+		font-size: 14px;
+		color: white;
+		flex-grow: 1;
+	}
+
+	.lb-points {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(212, 175, 55, 0.9);
+	}
+
+	.table-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.table-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		border-radius: 4px;
+		background-color: rgba(255, 255, 255, 0.03);
+	}
+
+	.table-name {
+		font-family: Poppins;
+		font-size: 14px;
+		color: white;
+		width: 80px;
+	}
+
+	.table-players {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.6);
+		width: 60px;
+	}
+
+	.table-stakes {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.4);
+		flex-grow: 1;
+	}
+
+	.table-status {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(255, 255, 255, 0.4);
+	}
+
+	.table-status.active {
+		color: #2ecc71;
+	}
+
+	.btn-close {
+		align-self: center;
+		padding: 8px 32px;
+		background-color: rgba(255, 255, 255, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		border-radius: 4px;
+		color: white;
+		font-family: Poppins;
+		font-size: 14px;
+		cursor: pointer;
+	}
+
+	.btn-close:hover {
+		background-color: rgba(255, 255, 255, 0.2);
+	}
+</style>
+
+@code {
+	private static readonly string[] RankIcons = { "🥇", "🥈", "🥉" };
+
+	private bool IsVisible { get; set; }
+	private string PrizeText => "TBD — Check Discord";
+	private string TimeLeftText => "6d 12h";
+
+	public struct LbEntry
+	{
+		public string Name;
+		public int Points;
+		public bool IsLocal;
+	}
+
+	public struct TableInfo
+	{
+		public int Id;
+		public int Players;
+		public int MaxPlayers;
+		public string Stakes;
+		public bool InProgress;
+	}
+
+	private LbEntry[] LeaderboardEntries => GetLeaderboard();
+	private TableInfo[] TableInfos => GetTableInfos();
+
+	protected override int BuildHash() => System.HashCode.Combine( IsVisible );
+
+	protected override void OnUpdate()
+	{
+		// Tab key toggles lobby
+		if ( Input.Pressed( "view" ) ) // V key
+			IsVisible = !IsVisible;
+	}
+
+	private void Close()
+	{
+		IsVisible = false;
+	}
+
+	private LbEntry[] GetLeaderboard()
+	{
+		// TODO: Wire to CompetitionPointSystem via networked state
+		return new LbEntry[]
+		{
+			new() { Name = "Waiting for players...", Points = 0, IsLocal = false }
+		};
+	}
+
+	private TableInfo[] GetTableInfos()
+	{
+		var tables = Scene?.GetAllComponents<PokerTable>();
+		if ( tables == null ) return Array.Empty<TableInfo>();
+
+		var result = new List<TableInfo>();
+		foreach ( var table in tables )
+		{
+			result.Add( new TableInfo
+			{
+				Id = table.TableId,
+				Players = table.OccupiedSeats,
+				MaxPlayers = table.SeatCount,
+				Stakes = "10/20",
+				InProgress = table.IsHandActive
+			} );
+		}
+		return result.ToArray();
+	}
+
+	public void Show() => IsVisible = true;
+}

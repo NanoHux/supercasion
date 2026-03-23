@@ -1,0 +1,115 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	<!-- World-space table indicators showing status from a distance -->
+	@foreach ( var info in TableInfos )
+	{
+		<div class="table-indicator" style="left: @info.ScreenX px; top: @info.ScreenY px;">
+			<div class="indicator-dot @info.StatusClass"></div>
+			<span class="indicator-label">Table @info.Id</span>
+			<span class="indicator-count">@info.Players/@info.MaxPlayers</span>
+		</div>
+	}
+</root>
+
+<style>
+	.table-indicator {
+		position: absolute;
+		transform: translate(-50%, -100%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		pointer-events: none;
+	}
+
+	.indicator-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+
+	.indicator-dot.available { background-color: #2ecc71; }
+	.indicator-dot.in-progress { background-color: #f39c12; }
+	.indicator-dot.full { background-color: #e74c3c; }
+
+	.indicator-label {
+		font-family: Poppins;
+		font-size: 10px;
+		color: rgba(255, 255, 255, 0.6);
+	}
+
+	.indicator-count {
+		font-family: Poppins;
+		font-size: 9px;
+		color: rgba(255, 255, 255, 0.4);
+	}
+</style>
+
+@code {
+	public struct IndicatorInfo
+	{
+		public int Id;
+		public int Players;
+		public int MaxPlayers;
+		public float ScreenX;
+		public float ScreenY;
+		public string StatusClass;
+	}
+
+	private IndicatorInfo[] TableInfos => GetTableInfos();
+
+	protected override int BuildHash()
+	{
+		var tables = Scene?.GetAllComponents<PokerTable>();
+		if ( tables == null ) return 0;
+		int hash = 0;
+		foreach ( var t in tables )
+			hash = System.HashCode.Combine( hash, t.OccupiedSeats, t.IsHandActive );
+		return hash;
+	}
+
+	private IndicatorInfo[] GetTableInfos()
+	{
+		var tables = Scene?.GetAllComponents<PokerTable>();
+		if ( tables == null ) return Array.Empty<IndicatorInfo>();
+
+		var camera = Scene?.Camera;
+		if ( camera == null ) return Array.Empty<IndicatorInfo>();
+
+		var result = new List<IndicatorInfo>();
+		foreach ( var table in tables )
+		{
+			// Project world position to screen
+			var worldPos = table.WorldPosition + Vector3.Up * 80f;
+			var screenPos = camera.PointToScreenNormal( worldPos );
+
+			// Only show if in front of camera and within reasonable distance
+			if ( screenPos.x < -0.1f || screenPos.x > 1.1f ) continue;
+			if ( screenPos.y < -0.1f || screenPos.y > 1.1f ) continue;
+
+			string statusClass;
+			if ( table.OccupiedSeats >= table.SeatCount )
+				statusClass = "full";
+			else if ( table.IsHandActive )
+				statusClass = "in-progress";
+			else
+				statusClass = "available";
+
+			result.Add( new IndicatorInfo
+			{
+				Id = table.TableId,
+				Players = table.OccupiedSeats,
+				MaxPlayers = table.SeatCount,
+				ScreenX = screenPos.x * Screen.Width,
+				ScreenY = screenPos.y * Screen.Height,
+				StatusClass = statusClass
+			} );
+		}
+
+		return result.ToArray();
+	}
+}

@@ -1,0 +1,161 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using TerrysCasino.Games.Poker;
+@inherits PanelComponent
+
+<root>
+	@if ( IsSpectating )
+	{
+		<div class="spectator-bar">
+			<span class="spectator-icon">👁</span>
+			<span class="spectator-text">Spectating — Table @TableId</span>
+			<span class="spectator-state">@HandState</span>
+		</div>
+
+		<!-- Spectator player info (no hole cards visible) -->
+		<div class="spectator-info">
+			<div class="spectator-pot">Pot: @PotSize</div>
+			<div class="spectator-players-row">
+				@for ( int i = 0; i < SeatNames.Length; i++ )
+				{
+					@if ( !string.IsNullOrEmpty( SeatNames[i] ) )
+					{
+						<div class="spectator-seat @(SeatStatuses[i])">
+							<span class="ss-name">@SeatNames[i]</span>
+							<span class="ss-chips">@SeatChips[i]</span>
+							<span class="ss-badge">@SeatStatuses[i]</span>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	}
+</root>
+
+<style>
+	.spectator-bar {
+		position: absolute;
+		top: 16px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+		background-color: rgba(0, 0, 0, 0.7);
+		border: 1px solid rgba(212, 175, 55, 0.3);
+		border-radius: 6px;
+		padding: 6px 16px;
+		pointer-events: none;
+	}
+
+	.spectator-icon {
+		font-size: 16px;
+	}
+
+	.spectator-text {
+		font-family: Poppins;
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.spectator-state {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(212, 175, 55, 0.7);
+		text-transform: uppercase;
+	}
+
+	.spectator-info {
+		position: absolute;
+		bottom: 80px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		pointer-events: none;
+	}
+
+	.spectator-pot {
+		font-family: Poppins;
+		font-size: 16px;
+		color: #d4af37;
+		font-weight: bold;
+	}
+
+	.spectator-players-row {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+	}
+
+	.spectator-seat {
+		background-color: rgba(20, 20, 20, 0.8);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+		padding: 4px 8px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		min-width: 70px;
+	}
+
+	.spectator-seat.folded { opacity: 0.4; }
+	.spectator-seat.allin { border-color: rgba(231, 76, 60, 0.5); }
+
+	.ss-name {
+		font-family: Poppins;
+		font-size: 11px;
+		color: white;
+	}
+
+	.ss-chips {
+		font-family: Poppins;
+		font-size: 12px;
+		color: rgba(212, 175, 55, 0.8);
+	}
+
+	.ss-badge {
+		font-family: Poppins;
+		font-size: 9px;
+		color: rgba(255, 255, 255, 0.3);
+		text-transform: uppercase;
+	}
+</style>
+
+@code {
+	private PokerTable Table => Scene?.GetAllComponents<PokerTable>()?.FirstOrDefault();
+
+	private bool IsSpectating
+	{
+		get
+		{
+			var table = Table;
+			if ( table == null ) return false;
+
+			// Spectating = in range but not seated
+			var interaction = Scene?.GetAllComponents<PokerTableInteraction>()
+				?.FirstOrDefault( t => t.IsLocalPlayerInRange() );
+			if ( interaction == null ) return false;
+
+			// Check if we're NOT seated
+			var seatStatuses = table.SeatStatusSync?.Split( ',' ) ?? Array.Empty<string>();
+			// If we can't determine seat status, show spectator mode when table is active
+			return table.IsHandActive;
+		}
+	}
+
+	private int TableId => Table?.TableId ?? 0;
+	private string HandState => Table?.HandStateSync ?? "Waiting";
+	private int PotSize => Table?.PotSize ?? 0;
+
+	private string[] SeatNames => Table?.PlayerNamesSync?.Split( ',' ) ?? Array.Empty<string>();
+	private string[] SeatStatuses => Table?.SeatStatusSync?.Split( ',' ) ?? Array.Empty<string>();
+	private string[] SeatChips => Table?.ChipCountsSync?.Split( ',' ) ?? Array.Empty<string>();
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		IsSpectating, PotSize, HandState, Table?.CurrentActionPlayer );
+}
